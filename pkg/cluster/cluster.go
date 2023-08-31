@@ -336,7 +336,9 @@ func (c *Cluster) Create() (err error) {
 	if err != nil {
 		return fmt.Errorf("could not create pod disruption budget: %v", err)
 	}
-	c.logger.Infof("pod disruption budget %q has been successfully created", util.NameFromMeta(pdb.ObjectMeta))
+	if pdb != nil {
+		c.logger.Infof("pod disruption budget %q has been successfully created", util.NameFromMeta(pdb.ObjectMeta))
+	}
 
 	if c.Statefulset != nil {
 		return fmt.Errorf("statefulset already exists in the cluster")
@@ -434,17 +436,6 @@ func (c *Cluster) compareStatefulSetWith(statefulSet *appsv1.StatefulSet) *compa
 		reasons = append(reasons, "new statefulset's pod management policy do not match")
 	}
 
-	if c.Statefulset.Spec.PersistentVolumeClaimRetentionPolicy == nil {
-		c.Statefulset.Spec.PersistentVolumeClaimRetentionPolicy = &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
-			WhenDeleted: appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
-			WhenScaled:  appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
-		}
-	}
-	if !reflect.DeepEqual(c.Statefulset.Spec.PersistentVolumeClaimRetentionPolicy, statefulSet.Spec.PersistentVolumeClaimRetentionPolicy) {
-		match = false
-		needsReplace = true
-		reasons = append(reasons, "new statefulset's persistent volume claim retention policy do not match")
-	}
 
 	needsRollUpdate, reasons = c.compareContainers("statefulset initContainers", c.Statefulset.Spec.Template.Spec.InitContainers, statefulSet.Spec.Template.Spec.InitContainers, needsRollUpdate, reasons)
 	needsRollUpdate, reasons = c.compareContainers("statefulset containers", c.Statefulset.Spec.Template.Spec.Containers, statefulSet.Spec.Template.Spec.Containers, needsRollUpdate, reasons)

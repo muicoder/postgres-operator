@@ -1,5 +1,4 @@
-ARG BASE_IMAGE=registry.opensource.zalan.do/library/ubuntu-22.04:latest
-FROM ${BASE_IMAGE}
+FROM ubuntu:22.04
 LABEL maintainer="Team ACID @ Zalando <team-acid@zalando.de>"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -16,7 +15,6 @@ RUN apt-get update     \
         gnupg \
         gcc \
         libffi-dev \
-    && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && pip3 install --upgrade pip \
     && pip3 install --no-cache-dir awscli --upgrade \
     && pip3 install --no-cache-dir gsutil --upgrade \
@@ -30,6 +28,7 @@ RUN apt-get update     \
         postgresql-client-14  \
         postgresql-client-13  \
         postgresql-client-12  \
+        postgresql-client-11  \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

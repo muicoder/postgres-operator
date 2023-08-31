@@ -65,7 +65,7 @@ func version(namespace string) {
 
 	operatorDeployment := getPostgresOperator(client)
 	if operatorDeployment.Name == "" {
-		log.Fatal("make sure zalando's postgres operator is running")
+		log.Fatal("make sure postgres operator is running")
 	}
 	operatorImage := operatorDeployment.Spec.Template.Spec.Containers[0].Image
 	imageDetails := strings.Split(operatorImage, ":")
