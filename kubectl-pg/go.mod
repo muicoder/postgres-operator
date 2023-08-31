@@ -6,10 +6,10 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/zalando/postgres-operator v1.13.0
-	k8s.io/api v0.30.4
-	k8s.io/apiextensions-apiserver v0.25.9
-	k8s.io/apimachinery v0.30.4
-	k8s.io/client-go v0.30.4
+	k8s.io/api v0.30.6
+	k8s.io/apiextensions-apiserver v0.25.16
+	k8s.io/apimachinery v0.30.6
+	k8s.io/client-go v0.30.6
 )
 
 require (
@@ -72,3 +72,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+replace github.com/zalando/postgres-operator => ../

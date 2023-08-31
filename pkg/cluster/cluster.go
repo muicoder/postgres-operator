@@ -342,7 +342,9 @@ func (c *Cluster) Create() (err error) {
 	if err != nil {
 		return fmt.Errorf("could not create pod disruption budget: %v", err)
 	}
-	c.logger.Infof("pod disruption budget %q has been successfully created", util.NameFromMeta(pdb.ObjectMeta))
+	if pdb != nil {
+		c.logger.Infof("pod disruption budget %q has been successfully created", util.NameFromMeta(pdb.ObjectMeta))
+	}
 
 	if c.Statefulset != nil {
 		return fmt.Errorf("statefulset already exists in the cluster")
@@ -450,17 +452,6 @@ func (c *Cluster) compareStatefulSetWith(statefulSet *appsv1.StatefulSet) *compa
 		reasons = append(reasons, "new statefulset's pod management policy do not match")
 	}
 
-	if c.Statefulset.Spec.PersistentVolumeClaimRetentionPolicy == nil {
-		c.Statefulset.Spec.PersistentVolumeClaimRetentionPolicy = &appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy{
-			WhenDeleted: appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
-			WhenScaled:  appsv1.RetainPersistentVolumeClaimRetentionPolicyType,
-		}
-	}
-	if !reflect.DeepEqual(c.Statefulset.Spec.PersistentVolumeClaimRetentionPolicy, statefulSet.Spec.PersistentVolumeClaimRetentionPolicy) {
-		match = false
-		needsReplace = true
-		reasons = append(reasons, "new statefulset's persistent volume claim retention policy do not match")
-	}
 
 	needsRollUpdate, reasons = c.compareContainers("statefulset initContainers", c.Statefulset.Spec.Template.Spec.InitContainers, statefulSet.Spec.Template.Spec.InitContainers, needsRollUpdate, reasons)
 	needsRollUpdate, reasons = c.compareContainers("statefulset containers", c.Statefulset.Spec.Template.Spec.Containers, statefulSet.Spec.Template.Spec.Containers, needsRollUpdate, reasons)
@@ -1390,18 +1381,18 @@ func (c *Cluster) initPreparedDatabaseRoles() error {
 			preparedSchemas = map[string]acidv1.PreparedSchema{"data": {DefaultRoles: util.True()}}
 		}
 
-		var searchPath strings.Builder
-		searchPath.WriteString(constants.DefaultSearchPath)
+		searchPathArr := []string{constants.DefaultSearchPath}
 		for preparedSchemaName := range preparedSchemas {
-			searchPath.WriteString(", " + preparedSchemaName)
+			searchPathArr = append(searchPathArr, fmt.Sprintf("%q", preparedSchemaName))
 		}
+		searchPath := strings.Join(searchPathArr, ", ")
 
 		// default roles per database
-		if err := c.initDefaultRoles(defaultRoles, "admin", preparedDbName, searchPath.String(), preparedDB.SecretNamespace); err != nil {
+		if err := c.initDefaultRoles(defaultRoles, "admin", preparedDbName, searchPath, preparedDB.SecretNamespace); err != nil {
 			return fmt.Errorf("could not initialize default roles for database %s: %v", preparedDbName, err)
 		}
 		if preparedDB.DefaultUsers {
-			if err := c.initDefaultRoles(defaultUsers, "admin", preparedDbName, searchPath.String(), preparedDB.SecretNamespace); err != nil {
+			if err := c.initDefaultRoles(defaultUsers, "admin", preparedDbName, searchPath, preparedDB.SecretNamespace); err != nil {
 				return fmt.Errorf("could not initialize default roles for database %s: %v", preparedDbName, err)
 			}
 		}
@@ -1412,14 +1403,16 @@ func (c *Cluster) initPreparedDatabaseRoles() error {
 				if err := c.initDefaultRoles(defaultRoles,
 					preparedDbName+constants.OwnerRoleNameSuffix,
 					preparedDbName+"_"+preparedSchemaName,
-					constants.DefaultSearchPath+", "+preparedSchemaName, preparedDB.SecretNamespace); err != nil {
+					fmt.Sprintf("%s, %q", constants.DefaultSearchPath, preparedSchemaName),
+					preparedDB.SecretNamespace); err != nil {
 					return fmt.Errorf("could not initialize default roles for database schema %s: %v", preparedSchemaName, err)
 				}
 				if preparedSchema.DefaultUsers {
 					if err := c.initDefaultRoles(defaultUsers,
 						preparedDbName+constants.OwnerRoleNameSuffix,
 						preparedDbName+"_"+preparedSchemaName,
-						constants.DefaultSearchPath+", "+preparedSchemaName, preparedDB.SecretNamespace); err != nil {
+						fmt.Sprintf("%s, %q", constants.DefaultSearchPath, preparedSchemaName),
+						preparedDB.SecretNamespace); err != nil {
 						return fmt.Errorf("could not initialize default users for database schema %s: %v", preparedSchemaName, err)
 					}
 				}

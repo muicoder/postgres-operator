@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	rollingUpdatePodAnnotationKey = "zalando-postgres-operator-rolling-update-required"
+	rollingUpdatePodAnnotationKey = "postgres-operator-rolling-update-required"
 )
 
 func (c *Cluster) listResources() error {
@@ -423,6 +423,9 @@ func (c *Cluster) generateEndpointSubsets(role PostgresRole) []v1.EndpointSubset
 }
 
 func (c *Cluster) createPodDisruptionBudget() (*policyv1.PodDisruptionBudget, error) {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil, nil
+	}
 	podDisruptionBudgetSpec := c.generatePodDisruptionBudget()
 	podDisruptionBudget, err := c.KubeClient.
 		PodDisruptionBudgets(podDisruptionBudgetSpec.Namespace).
@@ -437,6 +440,9 @@ func (c *Cluster) createPodDisruptionBudget() (*policyv1.PodDisruptionBudget, er
 }
 
 func (c *Cluster) updatePodDisruptionBudget(pdb *policyv1.PodDisruptionBudget) error {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil
+	}
 	if c.PodDisruptionBudget == nil {
 		return fmt.Errorf("there is no pod disruption budget in the cluster")
 	}
@@ -457,6 +463,9 @@ func (c *Cluster) updatePodDisruptionBudget(pdb *policyv1.PodDisruptionBudget) e
 }
 
 func (c *Cluster) deletePodDisruptionBudget() error {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil
+	}
 	c.logger.Debug("deleting pod disruption budget")
 	if c.PodDisruptionBudget == nil {
 		c.logger.Debug("there is no pod disruption budget in the cluster")
@@ -712,5 +721,8 @@ func (c *Cluster) GetStatefulSet() *appsv1.StatefulSet {
 
 // GetPodDisruptionBudget returns cluster's kubernetes PodDisruptionBudget
 func (c *Cluster) GetPodDisruptionBudget() *policyv1.PodDisruptionBudget {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil
+	}
 	return c.PodDisruptionBudget
 }

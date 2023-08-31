@@ -18,7 +18,7 @@ GITHEAD = $(shell git rev-parse --short HEAD)
 GITURL = $(shell git config --get remote.origin.url)
 GITSTATUS = $(shell git status --porcelain || echo "no changes")
 SOURCES = cmd/main.go
-VERSION ?= $(shell git describe --tags --always --dirty)
+VERSION ?= $(shell git describe --tags --always HEAD^)
 DIRS := cmd pkg
 PKG := `go list ./... | grep -v /vendor/`
 
@@ -65,7 +65,7 @@ docker: ${DOCKERDIR}/${DOCKERFILE}
 	echo "Tag ${TAG}"
 	echo "Version ${VERSION}"
 	echo "CDP tag ${CDP_TAG}"
-	echo "git describe $(shell git describe --tags --always --dirty)"
+	echo "git describe $(shell git describe --tags --always HEAD^)"
 	docker build --rm -t "$(IMAGE):$(TAG)$(CDP_TAG)$(DEBUG_FRESH)$(DEBUG_POSTFIX)" -f "${DOCKERDIR}/${DOCKERFILE}" --build-arg VERSION="${VERSION}" .
 
 indocker-race:
