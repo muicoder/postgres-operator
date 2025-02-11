@@ -1,4 +1,4 @@
-
-VERSION=1.0
-sed -i "s/KubectlPgVersion string = \"[^\"]*\"/KubectlPgVersion string = \"${VERSION}\"/" cmd/version.go
-go install
+#!/bin/sh
+cd "$(dirname "$0")" >/dev/null 2>&1 || exit
+go mod tidy
+CGO_ENABLED=0 go build -trimpath -ldflags "-extldflags -static -w -s" -o "${1:-$GOPATH/bin/${PWD##*/}}"

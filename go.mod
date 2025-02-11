@@ -14,11 +14,11 @@ require (
 	golang.org/x/crypto v0.31.0
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.30.4
-	k8s.io/apiextensions-apiserver v0.25.9
-	k8s.io/apimachinery v0.30.4
-	k8s.io/client-go v0.30.4
-	k8s.io/code-generator v0.25.9
+	k8s.io/api v0.30.14
+	k8s.io/apiextensions-apiserver v0.25.16
+	k8s.io/apimachinery v0.30.14
+	k8s.io/client-go v0.30.14
+	k8s.io/code-generator v0.25.16
 )
 
 require (
