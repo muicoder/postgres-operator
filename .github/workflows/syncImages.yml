@@ -1,0 +1,66 @@
+jobs:
+  module:
+    needs:
+      - versions
+    runs-on: ubuntu-latest
+    steps:
+      - id: version
+        name: build
+        run: |
+          buildah version
+          date >"$(hostname)"
+          until sudo curl -sL "https://github.com/nicholasdille/buildah-static/releases/download/$(curl -fsSL "https://api.github.com/repos/nicholasdille/buildah-static/releases/latest" | yq .tag_name)/buildah-amd64.tar.gz" | tar -C ~ -xz "bin/buildah" --strip-components=1; do
+          sleep "$(($(grep -v ^$ -c "$(hostname)") * 2))s"
+          date >>"$(hostname)"
+          done
+          if ~/buildah inspect "ghcr.io/zalando/${{ matrix.module }}:${{ matrix.version }}" >/dev/null; then
+              echo "FROM ghcr.io/zalando/${{ matrix.module }}:${{ matrix.version }}" >Dockerfile
+              echo "platforms=linux/amd64,linux/arm64" >>$GITHUB_OUTPUT
+          else
+              echo "FROM registry.opensource.zalan.do/acid/${{ matrix.module }}:${{ matrix.version }} AS pgbouncer" >Dockerfile
+              echo "platforms=linux/amd64" >>$GITHUB_OUTPUT
+          fi
+          case ${{ matrix.module }} in
+            pgbouncer)
+              echo "RUN sed -i -E 's~(_tls_sslmode =).+~\1 prefer~g;s~(_tls_protocols =).+~\1 all~;s~(^stats_users_.+)~#\1~' /etc/pgbouncer/pgbouncer.ini.tmpl" >>Dockerfile
+              echo "FROM registry.opensource.zalan.do/acid/${{ matrix.module }}:${{ matrix.version }}" >>Dockerfile
+              echo "COPY --from=pgbouncer /etc/pgbouncer/pgbouncer.ini.tmpl /etc/pgbouncer/pgbouncer.ini.tmpl" >>Dockerfile
+              ;;
+            esac
+          ~/buildah version
+          cat Dockerfile
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: ${{ steps.version.outputs.platforms }}
+          provenance: false
+          pull: true
+          push: true
+          sbom: false
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.module }}:${{ matrix.version }}
+    strategy:
+      matrix: ${{ fromJson(needs.versions.outputs.matrix) }}
+  versions:
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: versions
+        name: versions
+        run: |
+          echo IyEvdXNyL2Jpbi9lbnYgc2gKCnNldCAtZQoKcmVhZG9ubHkgcmVnaXN0cnk9InJlZ2lzdHJ5Lm9wZW5zb3VyY2UuemFsYW4uZG8iCnJlYWRvbmx5IFJFR0lTVFJZPSIkezE6LSR7UkVHSVNUUlk6LWRvY2tlci5pb319IgpyZWFkb25seSByZXBvc2l0b3J5PSJhY2lkIgpyZWFkb25seSBSRVBPU0lUT1JZPSIkezI6LSR7UkVQT1NJVE9SWTotbGlicmFyeX19IgoKY2FjaGUoKSB7CiAgY2FzZSAkUkVHSVNUUlkgaW4KICBkb2NrZXIuaW8pCiAgICBjaGVja191cmw9Imh0dHBzOi8vaHViLmRvY2tlci5jb20vdjIvcmVwb3NpdG9yaWVzLyRSRVBPU0lUT1JZLyRhcnRpZmFjdC90YWdzLyRpbWFnZV90YWciCiAgICA7OwogIGVzYWMKICBpZiAhIGN1cmwgLXNTTCAiJGNoZWNrX3VybCIgfCB5cSAtQ2VQICcuaW1hZ2VzW10uYXJjaGl0ZWN0dXJlJyA+L2Rldi9udWxsIDI+JjE7IHRoZW4KICAgIGVjaG8gIiAgLSBtb2R1bGU6ICRhcnRpZmFjdCIKICAgIGVjaG8gIiAgICB2ZXJzaW9uOiAkaW1hZ2VfdGFnIgogIGZpCn0KCmVjaG8gaW5jbHVkZTogPnZlcnNpb25zCgp2ZXJzaW9uPSQoY3VybCAtZnNTTCAiaHR0cHM6Ly9hcGkuZ2l0aHViLmNvbS9yZXBvcy96YWxhbmRvL3Bvc3RncmVzLW9wZXJhdG9yL3JlbGVhc2VzL2xhdGVzdCIgfCB5cSAtZSAudGFnX25hbWUpCmZvciBhcnRpZmFjdCBpbiAkKGN1cmwgLS1zaWxlbnQgLVggR0VUIC0taGVhZGVyICdBY2NlcHQ6IGFwcGxpY2F0aW9uL2pzb24nICJodHRwczovLyRyZWdpc3RyeS90ZWFtcy8kcmVwb3NpdG9yeS9hcnRpZmFjdHMiIHwganEgLXIgIi5bXSIgfCBncmVwIC1FICdeKHBvc3RncmVzLW9wZXJhdG9yfHBvc3RncmVzLW9wZXJhdG9yLXVpfGxvZ2ljYWwtYmFja3VwfHBnYm91bmNlcnxzcGlsby0xWzAtOV0rfHNwaWxvLTkuNikkJyk7IGRvCiAgY2FzZSAkYXJ0aWZhY3QgaW4KICBwZ2JvdW5jZXIpCiAgICBpbWFnZV90YWc9JChjdXJsIC0tc2lsZW50IC1YIEdFVCAtLWhlYWRlciAnQWNjZXB0OiBhcHBsaWNhdGlvbi9qc29uJyAiaHR0cHM6Ly8kcmVnaXN0cnkvdGVhbXMvJHJlcG9zaXRvcnkvYXJ0aWZhY3RzLyRhcnRpZmFjdC90YWdzIiB8IGpxIC1yICIuW10ubmFtZSIgfCBncmVwIC12RSAiListZy4rIiB8CiAgICAgIGdyZXAgLUUgIl5tYXN0ZXItWzAtOV0rJCIgfCB0YWlsIC1uIDEpCiAgICBlY2hvICIkYXJ0aWZhY3Q6JGltYWdlX3RhZyIKICAgIGNhY2hlID4+dmVyc2lvbnMKICAgIDs7CiAgc3BpbG8tKikKICAgIGN1cmwgLS1zaWxlbnQgLVggR0VUIC0taGVhZGVyICdBY2NlcHQ6IGFwcGxpY2F0aW9uL2pzb24nICJodHRwczovLyRyZWdpc3RyeS90ZWFtcy8kcmVwb3NpdG9yeS9hcnRpZmFjdHMvJGFydGlmYWN0L3RhZ3MiIHwganEgLXIgIi5bXS5uYW1lIiB8IGdyZXAgLXZFICIuKy1nLisiID4iJGFydGlmYWN0IgogICAgYXdrIC1GLSAne3ByaW50ICQxfScgIiRhcnRpZmFjdCIgfCBzb3J0IHwgZ3JlcCAtRSAiXlswLTkuXSskIiB8IHVuaXEgfCB3aGlsZSByZWFkIC1yIG1ham9yOyBkbwogICAgICBncmVwICJeJG1ham9yLSIgIiRhcnRpZmFjdCIgfCB0YWlsIC1uIDEgfCB3aGlsZSByZWFkIC1yIGltYWdlX3RhZzsgZG8KICAgICAgICBlY2hvICIkYXJ0aWZhY3Q6JGltYWdlX3RhZyIKICAgICAgICBjYWNoZSA+PnZlcnNpb25zCiAgICAgIGRvbmUKICAgIGRvbmUKICAgIDs7CiAgKikKICAgIGltYWdlX3RhZz0kKGN1cmwgLS1zaWxlbnQgLVggR0VUIC0taGVhZGVyICdBY2NlcHQ6IGFwcGxpY2F0aW9uL2pzb24nICJodHRwczovLyRyZWdpc3RyeS90ZWFtcy8kcmVwb3NpdG9yeS9hcnRpZmFjdHMvJGFydGlmYWN0L3RhZ3MiIHwganEgLXIgIi5bXS5uYW1lIiB8IGdyZXAgLXZFICIuKy1nLisiIHwKICAgICAgZ3JlcCAiJHZlcnNpb24iKQogICAgZWNobyAiJGFydGlmYWN0OiRpbWFnZV90YWciCiAgICBjYWNoZSA+PnZlcnNpb25zCiAgICA7OwogIGVzYWMKICBlY2hvCmRvbmUKCmlmICEgZ3JlcCB2ZXJzaW9uOiB2ZXJzaW9ucyA+L2Rldi9udWxsIDI+JjE7IHRoZW4KICBjYXQgPDxFT0YgPnZlcnNpb25zCmluY2x1ZGU6CiAgLSBtb2R1bGU6IHBvc3RncmVzLW9wZXJhdG9yCiAgICB2ZXJzaW9uOiAkdmVyc2lvbgpFT0YKZmkK | base64 -d | bash -s -- docker.io ${{ secrets.DOCKERHUB_USERNAME }}
+          yq -CP versions
+          echo "matrix=$(yq -oj versions | jq -rc)" >>$GITHUB_OUTPUT
+name: syncImages
+on:
+  workflow_dispatch:

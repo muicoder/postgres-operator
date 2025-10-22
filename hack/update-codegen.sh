@@ -14,13 +14,13 @@ cleanup() {
     rm -rf "${GENERATED_PACKAGE_ROOT}"
 }
 trap "cleanup" EXIT SIGINT
-
+find . -type f -name "*.deepcopy*" | grep -v vendor/ | xargs tar -cvf deepcopy.tgz
 bash "${CODEGEN_PKG}/generate-groups.sh" client,deepcopy,informer,lister \
   "${OPERATOR_PACKAGE_ROOT}/pkg/generated" "${OPERATOR_PACKAGE_ROOT}/pkg/apis" \
   "acid.zalan.do:v1 zalando.org:v1" \
   --go-header-file "${SCRIPT_ROOT}"/hack/custom-boilerplate.go.txt \
   -o ./
-
+tar -xf deepcopy.tgz
 cp -r "${OPERATOR_PACKAGE_ROOT}"/pkg/* "${TARGET_CODE_DIR}"
 
 cleanup

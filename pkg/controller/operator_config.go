@@ -85,6 +85,9 @@ func (c *Controller) importConfigurationFromCRD(fromCRD *acidv1.OperatorConfigur
 	result.PDBNameFormat = fromCRD.Kubernetes.PDBNameFormat
 	result.PDBMasterLabelSelector = util.CoalesceBool(fromCRD.Kubernetes.PDBMasterLabelSelector, util.True())
 	result.EnablePodDisruptionBudget = util.CoalesceBool(fromCRD.Kubernetes.EnablePodDisruptionBudget, util.True())
+	if _, err := c.KubeClient.PodDisruptionBudgets(metav1.NamespaceAll).List(context.TODO(), metav1.ListOptions{}); err != nil {
+		result.EnablePodDisruptionBudget = util.False()
+	}
 	result.StorageResizeMode = util.Coalesce(fromCRD.Kubernetes.StorageResizeMode, "pvc")
 	result.EnableInitContainers = util.CoalesceBool(fromCRD.Kubernetes.EnableInitContainers, util.True())
 	result.EnableSidecars = util.CoalesceBool(fromCRD.Kubernetes.EnableSidecars, util.True())

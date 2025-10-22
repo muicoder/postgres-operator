@@ -7,7 +7,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/zalando/postgres-operator v1.15.0
 	k8s.io/api v0.32.9
-	k8s.io/apiextensions-apiserver v0.25.9
+	k8s.io/apiextensions-apiserver v0.25.16
 	k8s.io/apimachinery v0.32.9
 	k8s.io/client-go v0.32.9
 )

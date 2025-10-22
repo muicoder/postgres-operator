@@ -1,0 +1,92 @@
+env:
+  OEM: ${{ inputs.oem }}
+jobs:
+  logical-backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: logical-backup
+          file: logical-backup/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          pull: true
+          push: true
+          sbom: false
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/logical-backup:latest
+  pgbouncer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          file: docker/pooler.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          pull: true
+          push: true
+          sbom: false
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/pgbouncer:latest
+  postgres-operator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "~1.25"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+      - name: Building
+        run: make deps && make codegen && hack/rename-codegen.sh && for ta in amd64 arm64; do go env -w GOARCH=$ta && make local && kubectl-pg/build.sh $PWD/build/kubectl-pg && mv build docker/$ta; done;tree docker
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: docker
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          pull: true
+          push: true
+          sbom: false
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/postgres-operator:${{ env.OEM }}
+name: buildImage
+on:
+  workflow_dispatch:
+    inputs:
+      oem:
+        default: sensoro
+        description: OEM
+        required: true
+        type: string

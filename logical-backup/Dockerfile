@@ -1,5 +1,4 @@
-ARG BASE_IMAGE=registry.opensource.zalan.do/library/ubuntu-22.04:latest
-FROM ${BASE_IMAGE}
+FROM ubuntu:22.04
 LABEL maintainer="Team ACID @ Zalando <team-acid@zalando.de>"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -9,17 +8,11 @@ RUN apt-get update     \
         ca-certificates \
         lsb-release \
         pigz \
-        python3-pip \
-        python3-setuptools \
         curl \
         jq \
         gnupg \
         gcc \
         libffi-dev \
-    && curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
-    && pip3 install --upgrade pip \
-    && pip3 install --no-cache-dir awscli --upgrade \
-    && pip3 install --no-cache-dir gsutil --upgrade \
     && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
     && cat /etc/apt/sources.list.d/pgdg.list \
     && curl --silent https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
