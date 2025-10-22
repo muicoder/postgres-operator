@@ -31,6 +31,7 @@ OUTPUT_PKG="${GOPKG}/${OUTPUT_DIR}"
 APIS_PKG="${GOPKG}/pkg/apis"
 GROUPS_WITH_VERSIONS="${CUSTOM_RESOURCE_NAME_ZAL}:${CUSTOM_RESOURCE_VERSION},${CUSTOM_RESOURCE_NAME_ACID}:${CUSTOM_RESOURCE_VERSION}"
 
+find . -type f -name "*.deepcopy*" | grep -v vendor/ | xargs tar -cvf deepcopy.tgz
 echo "Generating deepcopy funcs"
 go tool deepcopy-gen \
   --output-file zz_generated.deepcopy.go \
@@ -38,6 +39,7 @@ go tool deepcopy-gen \
   --go-header-file "${SCRIPT_ROOT}/hack/custom-boilerplate.go.txt" \
   "${APIS_PKG}/${CUSTOM_RESOURCE_NAME_ZAL}/${CUSTOM_RESOURCE_VERSION}" \
   "${APIS_PKG}/${CUSTOM_RESOURCE_NAME_ACID}/${CUSTOM_RESOURCE_VERSION}"
+tar -xf deepcopy.tgz
 
 echo "Generating clientset for ${GROUPS_WITH_VERSIONS} at ${OUTPUT_PKG}/${CLIENTSET_PKG_NAME:-clientset}"
 go tool client-gen \
