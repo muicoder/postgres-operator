@@ -474,6 +474,12 @@ PatroniInitDBParams:
 	// relevant section in the manifest.
 	if len(patroni.PgHba) > 0 {
 		config.PgLocalConfiguration[patroniPGHBAConfParameterName] = patroni.PgHba
+	} else {
+		config.PgLocalConfiguration[patroniPGHBAConfParameterName] = []string{
+			"local all all peer",
+			"local replication all scram-sha-256",
+			"host all,replication all all scram-sha-256",
+		}
 	}
 
 	res, err := json.Marshal(config)

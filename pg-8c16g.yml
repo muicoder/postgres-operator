@@ -1,0 +1,78 @@
+apiVersion: acid.zalan.do/v1
+kind: postgresql
+metadata:
+  annotations:
+    acid.zalan.do/controller: postgres-operator
+  name: pg-8c16g
+spec:
+  allowedSourceRanges:
+    - 127.0.0.1/32
+  connectionPooler:
+    maxDBConnections: 2000
+    numberOfInstances: 4
+  databases:
+    kubernetes: kubernetes
+  enableConnectionPooler: true
+  enableLogicalBackup: false
+  enableMasterLoadBalancer: false
+  enableMasterPoolerLoadBalancer: false
+  enableReplicaConnectionPooler: false
+  enableReplicaLoadBalancer: false
+  enableReplicaPoolerLoadBalancer: false
+  enableShmVolume: true
+  env:
+    - name: TZ
+      value: Asia/Shanghai
+    - name: SPILO_PROVIDER
+      value: local
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: pg
+              operator: In
+              values:
+                - spilo
+  numberOfInstances: 2
+  patroni:
+    failsafe_mode: true
+    pg_hba: # https://www.postgresql.org/docs/current/auth-pg-hba-conf.html
+      - local all all peer
+      - local replication all scram-sha-256
+      - host all,replication all all scram-sha-256
+  postgresql:
+    # SAN: effective_io_concurrency/random_page_cost=300/1.1
+    # SSD: effective_io_concurrency/random_page_cost=200/1.1
+    # HDD: effective_io_concurrency/random_page_cost=2/4
+    parameters: # https://pgtune.leopard.in.ua
+      checkpoint_completion_target: "0.9"
+      default_statistics_target: "100"
+      effective_cache_size: 12GB
+      effective_io_concurrency: "200"
+      huge_pages: "off"
+      maintenance_work_mem: 1GB
+      max_connections: "5000"
+      max_parallel_maintenance_workers: "4"
+      max_parallel_workers: "8"
+      max_parallel_workers_per_gather: "4"
+      max_wal_size: 4GB
+      max_worker_processes: "8"
+      min_wal_size: 1GB
+      password_encryption: scram-sha-256
+      random_page_cost: "1.1"
+      shared_buffers: 4GB
+      wal_buffers: 16MB
+      work_mem: 1024kB
+    version: "16"
+  resources:
+    limits:
+      cpu: "8"
+      memory: 16Gi
+    requests:
+      cpu: "8"
+      memory: 16Gi
+  teamId: k8s
+  users: # (no)bypassrls createdb createrole inherit login replication superuser
+    kubernetes: []
+  volume:
+    size: 100Gi

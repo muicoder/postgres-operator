@@ -19,7 +19,7 @@ GITHEAD = $(shell git rev-parse --short HEAD)
 GITURL = $(shell git config --get remote.origin.url)
 GITSTATUS = $(shell git status --porcelain || echo "no changes")
 SOURCES = cmd/main.go
-VERSION ?= $(shell git describe --tags --always --dirty)
+VERSION ?= $(shell git describe --tags --always HEAD^)
 CRD_SOURCES    = $(shell find pkg/apis/zalando.org pkg/apis/acid.zalan.do -name '*.go' -not -name '*.deepcopy.go')
 GENERATED_CRDS = manifests/postgresteam.crd.yaml manifests/postgresql.crd.yaml pkg/apis/acid.zalan.do/v1/postgresql.crd.yaml
 GENERATED      = pkg/apis/zalando.org/v1/zz_generated.deepcopy.go pkg/apis/acid.zalan.do/v1/zz_generated.deepcopy.go
@@ -92,7 +92,7 @@ docker: $(GENERATED_CRDS) ${DOCKERDIR}/${DOCKERFILE}
 	echo "Tag ${TAG}"
 	echo "Version ${VERSION}"
 	echo "CDP tag ${CDP_TAG}"
-	echo "git describe $(shell git describe --tags --always --dirty)"
+	echo "git describe $(shell git describe --tags --always HEAD^)"
 	docker build --rm -t "$(IMAGE_TAG)" -f "${DOCKERDIR}/${DOCKERFILE}" --build-arg VERSION="${VERSION}" --build-arg BASE_IMAGE="${BASE_IMAGE}" .
 
 indocker-race:

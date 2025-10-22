@@ -32,8 +32,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "kubectl-pg",
-	Short: "kubectl plugin for the Zalando Postgres operator.",
-	Long:  `kubectl pg plugin for interaction with Zalando postgres operator.`,
+	Short: "kubectl plugin for the Postgres operator.",
+	Long:  `kubectl pg plugin for interaction with postgres operator.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
