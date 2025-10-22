@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+
+readonly d_old=acid.zalan.do
+readonly o_old=zalando.org
+readonly oem=zalan
+readonly OEM="${OEM:-$oem}"
+echo "OEM: $OEM"
+readonly d_new="acid.$OEM.do"
+if [ "$OEM" = $oem ]; then
+  readonly o_new="${oem}do.org"
+else
+  readonly o_new="${OEM}.sre"
+fi
+echo "$d_old=>$d_new"
+echo "$o_old=>$o_new"
+toFU() {
+  local str firstLetter otherLetter
+  str=$1
+  firstLetter=$(echo "${str:0:1}" | awk '{print toupper($0)}')
+  otherLetter=${str:1}
+  echo "$firstLetter$otherLetter"
+}
+if [ "$OEM" != $oem ]; then
+  grep -rl $oem | grep .y\*ml$ | grep -v ui/ | while read -r f; do
+    sed "s~$d_old~$d_new~g;s~$o_old~$o_new~g;s~registry.opensource.zalan.do/acid~docker.io/muicoder~g;s~ghcr.io/zalando~ghcr.io/muicoder~g;s~Zalando~$(toFU "$OEM")~g;s~zalando~$OEM~g" <"$f" >"$f.bak" && mv "$f.bak" "$f"
+  done
+fi
