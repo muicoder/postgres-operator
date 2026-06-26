@@ -1642,7 +1642,7 @@ func (c *Cluster) initRobotUsers() error {
 			Origin:    spec.RoleOriginManifest,
 			Name:      username,
 			Namespace: namespace,
-			Password:  util.RandomPassword(constants.PasswordLength),
+			Password:  username,
 			Flags:     flags,
 			AdminRole: adminRole,
 			IsDbOwner: isOwner,
