@@ -431,6 +431,9 @@ func (c *Cluster) generateEndpointSubsets(role PostgresRole) []v1.EndpointSubset
 }
 
 func (c *Cluster) createPrimaryPodDisruptionBudget() error {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil
+	}
 	c.logger.Debug("creating primary pod disruption budget")
 	if c.PrimaryPodDisruptionBudget != nil {
 		c.logger.Warning("primary pod disruption budget already exists in the cluster")
@@ -452,6 +455,9 @@ func (c *Cluster) createPrimaryPodDisruptionBudget() error {
 }
 
 func (c *Cluster) createCriticalOpPodDisruptionBudget() error {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil
+	}
 	c.logger.Debug("creating pod disruption budget for critical operations")
 	if c.CriticalOpPodDisruptionBudget != nil {
 		c.logger.Warning("pod disruption budget for critical operations already exists in the cluster")
@@ -513,6 +519,9 @@ func (c *Cluster) updatePrimaryPodDisruptionBudget(pdb *policyv1.PodDisruptionBu
 }
 
 func (c *Cluster) updateCriticalOpPodDisruptionBudget(pdb *policyv1.PodDisruptionBudget) error {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil
+	}
 	c.logger.Debug("updating pod disruption budget for critical operations")
 	if c.CriticalOpPodDisruptionBudget == nil {
 		return fmt.Errorf("there is no pod disruption budget for critical operations in the cluster")
@@ -844,6 +853,9 @@ func (c *Cluster) GetStatefulSet() *appsv1.StatefulSet {
 
 // GetPrimaryPodDisruptionBudget returns cluster's primary kubernetes PodDisruptionBudget
 func (c *Cluster) GetPrimaryPodDisruptionBudget() *policyv1.PodDisruptionBudget {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil
+	}
 	return c.PrimaryPodDisruptionBudget
 }
 

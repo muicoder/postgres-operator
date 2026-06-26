@@ -2,7 +2,7 @@ package constants
 
 // Roles specific constants
 const (
-	PasswordLength              = 64
+	PasswordLength              = 8
 	SuperuserKeyName            = "superuser"
 	ReplicationUserKeyName      = "replication"
 	ConnectionPoolerUserKeyName = "pooler"

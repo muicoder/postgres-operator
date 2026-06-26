@@ -457,6 +457,9 @@ func (c *Cluster) syncEndpoint(role PostgresRole) error {
 }
 
 func (c *Cluster) syncPrimaryPodDisruptionBudget(isUpdate bool) error {
+	if *c.OpConfig.EnablePodDisruptionBudget == false {
+		return nil
+	}
 	var (
 		pdb *policyv1.PodDisruptionBudget
 		err error
